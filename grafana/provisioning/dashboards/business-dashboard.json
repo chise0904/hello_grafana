@@ -1,0 +1,95 @@
+{
+  "title": "業務數據 Dashboard（直接 SQL）",
+  "uid": "business-sql-lab",
+  "timezone": "Asia/Taipei",
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "每分鐘訂單數",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "postgres-direct" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('minute', created_at) AS time, count(*) AS \"訂單數\" FROM orders WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "訂單狀態分佈",
+      "type": "piechart",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "postgres-direct" },
+      "targets": [
+        {
+          "rawSql": "SELECT status AS metric, count(*) AS value FROM orders WHERE $__timeFilter(created_at) GROUP BY status",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "總營業額（選取時段）",
+      "type": "stat",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "postgres-direct" },
+      "targets": [
+        {
+          "rawSql": "SELECT NOW() AS time, COALESCE(SUM(amount),0) AS \"總營業額\" FROM orders WHERE status='success' AND $__timeFilter(created_at)",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "currencyTWD" } }
+    },
+    {
+      "id": 4,
+      "title": "API 請求量（每分鐘）",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "postgres-direct" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('minute', created_at) AS time, count(*) AS \"請求數\" FROM api_logs WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "API 平均回應時間 ms（每分鐘）",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "postgres-direct" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('minute', created_at) AS time, round(avg(response_ms)) AS \"平均回應 ms\" FROM api_logs WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "最近告警事件",
+      "type": "table",
+      "gridPos": { "x": 0, "y": 16, "w": 24, "h": 7 },
+      "datasource": { "type": "postgres", "uid": "postgres-direct" },
+      "targets": [
+        {
+          "rawSql": "SELECT created_at AS \"時間\", severity AS \"等級\", service AS \"服務\", message AS \"訊息\" FROM alert_events WHERE $__timeFilter(created_at) ORDER BY created_at DESC LIMIT 50",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+version: "3.8"
+
+# ============================================================
+#  Grafana + PostgreSQL 監控測試環境
+#  場景：DB 效能監控 / 直接 SQL Query / 業務數據 Dashboard
+# ============================================================
+
+networks:
+  monitoring:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+
+services:
+
+  # ──────────────────────────────────────────
+  # 1. PostgreSQL（主角資料庫）
+  # ──────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: lab-postgres
+    environment:
+      POSTGRES_DB: labdb
+      POSTGRES_USER: labuser
+      POSTGRES_PASSWORD: labpass123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d   # 初始化 schema
+    ports:
+      - "5432:5432"
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U labuser -d labdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────
+  # 2. postgres_exporter（DB 效能指標 → Prometheus）
+  # ──────────────────────────────────────────
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: lab-pg-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://labuser:labpass123@postgres:5432/labdb?sslmode=disable"
+    ports:
+      - "9187:9187"
+    networks:
+      - monitoring
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ──────────────────────────────────────────
+  # 3. Prometheus（抓 exporter metrics）
+  # ──────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: lab-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=7d"
+      - "--web.enable-lifecycle"
+    depends_on:
+      - postgres-exporter
+
+  # ──────────────────────────────────────────
+  # 4. Grafana（可視化核心）
+  # ──────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: lab-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_INSTALL_PLUGINS: ""
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3000:3000"
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+      - postgres
+
+  # ──────────────────────────────────────────
+  # 5. 假資料產生器（模擬真實業務流量）
+  # ──────────────────────────────────────────
+  fake-data-generator:
+    image: python:3.11-slim
+    container_name: lab-data-gen
+    volumes:
+      - ./fake-data/generator.py:/app/generator.py
+    working_dir: /app
+    command: >
+      sh -c "pip install psycopg2-binary faker --quiet &&
+             python generator.py"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: labdb
+      DB_USER: labuser
+      DB_PASS: labpass123
+    networks:
+      - monitoring
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped

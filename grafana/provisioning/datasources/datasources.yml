@@ -1,0 +1,29 @@
+apiVersion: 1
+ 
+datasources:
+ 
+  # ── 場景 1：Prometheus（DB 效能指標來源）──
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+ 
+  # ── 場景 2 & 3：PostgreSQL 直接 SQL Query ──
+  - name: PostgreSQL-Direct
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    user: grafana_ro
+    secureJsonData:
+      password: grafana_ro_pass
+    jsonData:
+      database: labdb
+      sslmode: disable
+      maxOpenConns: 5
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+      postgresVersion: 1500
+      timescaledb: false
+    editable: true
