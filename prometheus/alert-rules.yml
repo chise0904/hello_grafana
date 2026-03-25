@@ -54,3 +54,80 @@ groups:
           description: >-
             {{ $labels.relname }} 累積了 {{ $value }} 個 dead tuples，
             建議執行 VACUUM 或檢查 autovacuum 設定。
+
+  # ============================================================
+  #  Lock 相關告警群組
+  # ============================================================
+  - name: postgresql-lock-alerts
+    interval: 15s
+    rules:
+
+      # ── 5. 有 session 正在等待 Lock（最直接的 lock 阻塞訊號）───────────────
+      # pg_stat_activity_count{wait_event_type="Lock"} 代表目前有幾條 session
+      # 正卡在等待取得 lock，> 0 就代表發生了 lock 競爭
+      - alert: PostgresLockWaitDetected
+        expr: >-
+          pg_stat_activity_count{datname="labdb", wait_event_type="Lock"} > 0
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "偵測到 {{ $value }} 條 session 正在等待 Lock"
+          description: >-
+            labdb 有 {{ $value }} 條連線因等待 lock 而被阻塞，
+            可能存在 lock 競爭或長事務未提交，請至 pg_stat_activity 確認阻塞來源。
+
+      # ── 6. 嚴重 Lock 等待（多條 session 同時卡住）──────────────────────────
+      - alert: PostgresLockWaitCritical
+        expr: >-
+          pg_stat_activity_count{datname="labdb", wait_event_type="Lock"} >= 5
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "嚴重：{{ $value }} 條 session 同時等待 Lock"
+          description: >-
+            labdb 有 {{ $value }} 條連線同時等待 lock，可能正在發生 lock 堆積或 deadlock 前兆，
+            請立即執行：SELECT * FROM pg_blocking_pids(pid) 找出阻塞源頭。
+
+      # ── 7. AccessExclusiveLock 出現（最強的 lock，會擋住所有讀寫）──────────
+      # DDL 操作（ALTER TABLE、TRUNCATE、DROP）會持有 AccessExclusiveLock
+      # 正常運作期間不應出現，出現代表有危險的 DDL 正在執行
+      - alert: PostgresAccessExclusiveLock
+        expr: >-
+          pg_locks_count{datname="labdb", mode="AccessExclusiveLock"} > 0
+        for: 15s
+        labels:
+          severity: critical
+        annotations:
+          summary: "偵測到 AccessExclusiveLock（DDL 操作進行中）"
+          description: >-
+            labdb 出現 {{ $value }} 個 AccessExclusiveLock，
+            此類 lock 由 ALTER TABLE / TRUNCATE / DROP 等 DDL 產生，
+            會阻塞所有對該資料表的讀寫，請確認是否為計劃性維護。
+
+      # ── 8. ExclusiveLock 數量過多（寫入競爭嚴重）──────────────────────────
+      - alert: PostgresHighExclusiveLocks
+        expr: >-
+          pg_locks_count{datname="labdb", mode="ExclusiveLock"} > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ExclusiveLock 數量過多（目前 {{ $value }} 個）"
+          description: >-
+            labdb ExclusiveLock 累積至 {{ $value }} 個，
+            通常表示大量寫入事務同時競爭相同資料列，建議檢查業務邏輯或 batch 操作。
+
+      # ── 9. 總 Lock 數量異常（整體 lock 壓力指標）──────────────────────────
+      - alert: PostgresTotalLocksHigh
+        expr: >-
+          sum(pg_locks_count{datname="labdb"}) > 100
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "labdb 總 lock 數量超過 100（目前 {{ $value }} 個）"
+          description: >-
+            labdb 所有 lock 類型合計達 {{ $value }} 個，
+            整體 lock 壓力偏高，建議確認是否有長事務、未提交的 transaction 或連線池未正確釋放連線。
