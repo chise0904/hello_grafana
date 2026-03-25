@@ -1,0 +1,56 @@
+groups:
+  - name: postgresql-demo-alerts
+    interval: 15s
+    rules:
+
+      # ── 1. 容易觸發的 Demo 指標：labdb 有活躍連線就觸發 ─────────────────────
+      # pg_stat_database_numbackends > 0 代表 labdb 有人連進來，只要系統跑著就會 fire
+      - alert: LabDBHasConnections
+        expr: pg_stat_database_numbackends{datname="labdb"} > 0
+        for: 1m   # 持續 1 分鐘才觸發（避免瞬間抖動）
+        labels:
+          severity: warning
+        annotations:
+          summary: "labdb 有 {{ $value }} 條活躍連線"
+          description: >-
+            PostgreSQL 資料庫 labdb 目前有 {{ $value }} 條後端連線，
+            超過閾值 0（此為 Demo 用途，確保 Alert 能觸發）。
+
+      # ── 2. Postgres Exporter 掉線 ──────────────────────────────────────────
+      - alert: PostgresExporterDown
+        expr: pg_up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "postgres_exporter 無法連線到 PostgreSQL"
+          description: >-
+            pg_up == 0，Prometheus 無法從 postgres-exporter 取得指標，
+            請確認 PostgreSQL 或 exporter 是否正常運作。
+
+      # ── 3. 高連線數警告（正式環境常見場景）────────────────────────────────
+      - alert: PostgresHighConnections
+        expr: >-
+          pg_stat_database_numbackends{datname="labdb"}
+          / pg_settings_max_connections * 100 > 60
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL 連線使用率超過 60%"
+          description: >-
+            labdb 連線使用率達 {{ $value | printf "%.1f" }}%，
+            max_connections 已用超過 60%，請注意連線池設定。
+
+      # ── 4. 大量 Dead Tuples（需要 VACUUM）──────────────────────────────────
+      - alert: PostgresHighDeadTuples
+        expr: >-
+          pg_stat_user_tables_n_dead_tup{datname="labdb"} > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "資料表 {{ $labels.relname }} dead tuples 過多"
+          description: >-
+            {{ $labels.relname }} 累積了 {{ $value }} 個 dead tuples，
+            建議執行 VACUUM 或檢查 autovacuum 設定。

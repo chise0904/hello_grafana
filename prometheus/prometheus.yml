@@ -2,6 +2,17 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+# ── Alertmanager 設定 ──────────────────────────────────────────────────────
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - "alertmanager:9093"
+
+# ── Alert Rules 載入 ───────────────────────────────────────────────────────
+rule_files:
+  - "/etc/prometheus/alert-rules.yml"
+
 scrape_configs:
 
   - job_name: "prometheus"
@@ -12,3 +23,7 @@ scrape_configs:
     static_configs:
       - targets: ["postgres-exporter:9187"]
     metrics_path: /metrics
+
+  - job_name: "alertmanager"
+    static_configs:
+      - targets: ["alertmanager:9093"]

@@ -1,18 +1,24 @@
 apiVersion: 1
- 
+
+deleteDatasources:
+  - name: PostgreSQL-Direct
+    orgId: 1
+  - name: Prometheus
+    orgId: 1
+
 datasources:
- 
-  # ── 場景 1：Prometheus（DB 效能指標來源）──
+
   - name: Prometheus
     type: prometheus
+    uid: prometheus-lab
     access: proxy
     url: http://prometheus:9090
     isDefault: true
     editable: true
- 
-  # ── 場景 2 & 3：PostgreSQL 直接 SQL Query ──
+
   - name: PostgreSQL-Direct
     type: postgres
+    uid: postgres-direct
     access: proxy
     url: postgres:5432
     user: grafana_ro

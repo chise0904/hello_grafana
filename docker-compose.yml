@@ -63,6 +63,7 @@ services:
     container_name: lab-prometheus
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml
       - prometheus_data:/prometheus
     ports:
       - "9090:9090"
@@ -75,6 +76,25 @@ services:
       - "--web.enable-lifecycle"
     depends_on:
       - postgres-exporter
+      - alertmanager
+
+  # ──────────────────────────────────────────
+  # 6. Alertmanager（Alert 路由 → Slack / Teams）
+  # ──────────────────────────────────────────
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: lab-alertmanager
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    ports:
+      - "9093:9093"
+    networks:
+      - monitoring
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+      - "--web.listen-address=:9093"
+      - "--log.level=info"
 
   # ──────────────────────────────────────────
   # 4. Grafana（可視化核心）

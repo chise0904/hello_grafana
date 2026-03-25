@@ -1,0 +1,52 @@
+global:
+  resolve_timeout: 5m
+  # Slack 全域設定（可選）
+  slack_api_url: 'https://hooks.slack.com/services/REPLACE_ME/REPLACE_ME/REPLACE_ME'
+
+route:
+  group_by: ['alertname', 'severity']
+  group_wait: 10s        # 收到第一個 alert 後等 10s 再發（合併同 group）
+  group_interval: 5m     # 同 group 再次通知的間隔
+  repeat_interval: 1h    # 未 resolve 時重複通知間隔
+  receiver: 'all-channels'
+
+receivers:
+  - name: 'all-channels'
+
+    # ── Slack ──────────────────────────────────────────────────────────────
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/REPLACE_ME/REPLACE_ME/REPLACE_ME'
+        channel: '#alerts'
+        send_resolved: true
+        icon_emoji: ':fire:'
+        title: |-
+          [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
+        text: |-
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Severity:* {{ .Labels.severity }}
+          *Description:* {{ .Annotations.description }}
+          *Started:* {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ end }}
+
+    # ── Microsoft Teams ─────────────────────────────────────────────────────
+    # 需要 Alertmanager v0.26+ 才有 msteams_configs 原生支援
+    msteams_configs:
+      - webhook_url: 'https://REPLACE_ME.webhook.office.com/webhookb2/REPLACE_ME'
+        send_resolved: true
+        title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+        text: |-
+          {{ range .Alerts }}
+          **Alert:** {{ .Annotations.summary }}
+          **Severity:** {{ .Labels.severity }}
+          **Description:** {{ .Annotations.description }}
+          **Started:** {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ end }}
+
+inhibit_rules:
+  # 若 critical 已觸發，抑制同 alertname 的 warning
+  - source_matchers:
+      - 'severity = critical'
+    target_matchers:
+      - 'severity = warning'
+    equal: ['alertname']
