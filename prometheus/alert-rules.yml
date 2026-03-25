@@ -57,77 +57,87 @@ groups:
 
   # ============================================================
   #  Lock 相關告警群組
+  #
+  #  設計原則：
+  #  短暫的 lock 是 PostgreSQL 正常行為，每個 transaction 都會持有再釋放。
+  #  Prometheus 的 `for:` 代表「條件必須持續為 true 達該時間才觸發」，
+  #  因此 for 的長短決定了「能容忍 lock 持續多久」：
+  #    - warning  → for: 2m（等待超過 2 分鐘才算值得關注）
+  #    - critical → for: 1m（多條 session 同時卡住，1 分鐘就夠嚴重）
+  #    - DDL lock → for: 2m（維護腳本正常可能需要幾十秒，2 分鐘才算異常）
   # ============================================================
   - name: postgresql-lock-alerts
     interval: 15s
     rules:
 
-      # ── 5. 有 session 正在等待 Lock（最直接的 lock 阻塞訊號）───────────────
-      # pg_stat_activity_count{wait_event_type="Lock"} 代表目前有幾條 session
-      # 正卡在等待取得 lock，> 0 就代表發生了 lock 競爭
+      # ── 5. 有 session 正在等待 Lock ────────────────────────────────────────
+      # 條件必須持續 2 分鐘才觸發，過濾掉瞬間競爭的正常情況
       - alert: PostgresLockWaitDetected
         expr: >-
           pg_stat_activity_count{datname="labdb", wait_event_type="Lock"} > 0
-        for: 30s
+        for: 2m
         labels:
           severity: warning
         annotations:
-          summary: "偵測到 {{ $value }} 條 session 正在等待 Lock"
+          summary: "lock 等待持續超過 2 分鐘（{{ $value }} 條 session 受阻）"
           description: >-
-            labdb 有 {{ $value }} 條連線因等待 lock 而被阻塞，
-            可能存在 lock 競爭或長事務未提交，請至 pg_stat_activity 確認阻塞來源。
+            labdb 有 {{ $value }} 條連線等待 lock 已超過 2 分鐘，
+            可能有長事務未提交導致阻塞堆積，
+            請執行：SELECT pid, now() - pg_stat_activity.query_start AS duration,
+            query, state FROM pg_stat_activity WHERE wait_event_type = 'Lock';
 
       # ── 6. 嚴重 Lock 等待（多條 session 同時卡住）──────────────────────────
       - alert: PostgresLockWaitCritical
         expr: >-
           pg_stat_activity_count{datname="labdb", wait_event_type="Lock"} >= 5
-        for: 30s
+        for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "嚴重：{{ $value }} 條 session 同時等待 Lock"
+          summary: "嚴重：{{ $value }} 條 session 等待 Lock 超過 1 分鐘"
           description: >-
-            labdb 有 {{ $value }} 條連線同時等待 lock，可能正在發生 lock 堆積或 deadlock 前兆，
+            labdb 有 {{ $value }} 條連線同時卡在 lock 等待超過 1 分鐘，
+            極可能正在發生 lock 堆積或 deadlock 前兆，
             請立即執行：SELECT * FROM pg_blocking_pids(pid) 找出阻塞源頭。
 
-      # ── 7. AccessExclusiveLock 出現（最強的 lock，會擋住所有讀寫）──────────
-      # DDL 操作（ALTER TABLE、TRUNCATE、DROP）會持有 AccessExclusiveLock
-      # 正常運作期間不應出現，出現代表有危險的 DDL 正在執行
-      - alert: PostgresAccessExclusiveLock
+      # ── 7. AccessExclusiveLock 持續過久（DDL 長時間佔用）──────────────────
+      # 短暫的 DDL（如快速 ALTER）持有幾秒是正常的，
+      # 超過 2 分鐘才代表 DDL 卡住或忘記提交事務
+      - alert: PostgresAccessExclusiveLockStuck
         expr: >-
           pg_locks_count{datname="labdb", mode="AccessExclusiveLock"} > 0
-        for: 15s
+        for: 2m
         labels:
           severity: critical
         annotations:
-          summary: "偵測到 AccessExclusiveLock（DDL 操作進行中）"
+          summary: "AccessExclusiveLock 持續超過 2 分鐘（DDL 卡住？）"
           description: >-
-            labdb 出現 {{ $value }} 個 AccessExclusiveLock，
-            此類 lock 由 ALTER TABLE / TRUNCATE / DROP 等 DDL 產生，
-            會阻塞所有對該資料表的讀寫，請確認是否為計劃性維護。
+            labdb 的 AccessExclusiveLock 已持續超過 2 分鐘（目前 {{ $value }} 個），
+            此 lock 會阻塞所有對該資料表的讀寫，
+            請確認是否有 ALTER TABLE / TRUNCATE / DROP 未完成或未提交。
 
-      # ── 8. ExclusiveLock 數量過多（寫入競爭嚴重）──────────────────────────
+      # ── 8. ExclusiveLock 數量過多且持續（寫入競爭嚴重）────────────────────
       - alert: PostgresHighExclusiveLocks
         expr: >-
           pg_locks_count{datname="labdb", mode="ExclusiveLock"} > 10
-        for: 1m
+        for: 3m
         labels:
           severity: warning
         annotations:
-          summary: "ExclusiveLock 數量過多（目前 {{ $value }} 個）"
+          summary: "ExclusiveLock 持續偏高超過 3 分鐘（目前 {{ $value }} 個）"
           description: >-
-            labdb ExclusiveLock 累積至 {{ $value }} 個，
-            通常表示大量寫入事務同時競爭相同資料列，建議檢查業務邏輯或 batch 操作。
+            labdb ExclusiveLock 維持在 {{ $value }} 個超過 3 分鐘，
+            通常表示大量寫入事務持續競爭相同資料列，建議檢查業務邏輯或 batch 操作頻率。
 
       # ── 9. 總 Lock 數量異常（整體 lock 壓力指標）──────────────────────────
       - alert: PostgresTotalLocksHigh
         expr: >-
           sum(pg_locks_count{datname="labdb"}) > 100
-        for: 2m
+        for: 3m
         labels:
           severity: warning
         annotations:
-          summary: "labdb 總 lock 數量超過 100（目前 {{ $value }} 個）"
+          summary: "labdb 總 lock 數持續超過 100（目前 {{ $value }} 個）"
           description: >-
-            labdb 所有 lock 類型合計達 {{ $value }} 個，
-            整體 lock 壓力偏高，建議確認是否有長事務、未提交的 transaction 或連線池未正確釋放連線。
+            labdb 所有 lock 類型合計達 {{ $value }} 個，已持續超過 3 分鐘，
+            整體 lock 壓力持續偏高，建議確認是否有長事務或連線池洩漏。
