@@ -1,7 +1,7 @@
 global:
   resolve_timeout: 5m
   # Slack 全域設定（可選）
-  slack_api_url: 'https://hooks.slack.com/services/REPLACE_ME/REPLACE_ME/REPLACE_ME'
+  slack_api_url: 'https://REPLACE_ME.hooks.slack.com/services/REPLACE_ME'
 
 route:
   group_by: ['alertname', 'severity']
@@ -15,8 +15,8 @@ receivers:
 
     # ── Slack ──────────────────────────────────────────────────────────────
     slack_configs:
-      - api_url: 'https://hooks.slack.com/services/REPLACE_ME/REPLACE_ME/REPLACE_ME'
-        channel: '#alerts'
+      - api_url: 'https://REPLACE_ME.hooks.slack.com/services/REPLACE_ME'
+        channel: '#general'
         send_resolved: true
         icon_emoji: ':fire:'
         title: |-

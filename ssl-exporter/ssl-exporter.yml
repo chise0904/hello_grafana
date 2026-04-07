@@ -1,0 +1,9 @@
+modules:
+
+  # ── TCP TLS 探測（直接建立 TLS 連線，取得憑證資訊）────────────────────
+  tcp:
+    prober: tcp
+
+  # ── HTTPS 探測（透過 HTTP 取得憑證，支援 SNI）──────────────────────────
+  https:
+    prober: https

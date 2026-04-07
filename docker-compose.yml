@@ -81,6 +81,36 @@ services:
   # ──────────────────────────────────────────
   # 6. Alertmanager（Alert 路由 → Slack / Teams）
   # ──────────────────────────────────────────
+  # 7. Blackbox Exporter（HTTP / TCP 端點探測）
+  # ──────────────────────────────────────────
+  blackbox-exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: lab-blackbox
+    volumes:
+      - ./blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml
+    ports:
+      - "9115:9115"
+    networks:
+      - monitoring
+    command:
+      - "--config.file=/etc/blackbox_exporter/config.yml"
+
+  # ──────────────────────────────────────────
+  # 8. SSL Exporter（TLS 憑證到期監控）
+  # ──────────────────────────────────────────
+  ssl-exporter:
+    image: ribbybibby/ssl-exporter:latest
+    container_name: lab-ssl-exporter
+    volumes:
+      - ./ssl-exporter/ssl-exporter.yml:/etc/ssl-exporter/ssl-exporter.yml
+    ports:
+      - "9219:9219"
+    networks:
+      - monitoring
+    command:
+      - "--config.file=/etc/ssl-exporter/ssl-exporter.yml"
+
+  # ──────────────────────────────────────────
   alertmanager:
     image: prom/alertmanager:v0.27.0
     container_name: lab-alertmanager

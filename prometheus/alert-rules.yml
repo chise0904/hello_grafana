@@ -141,3 +141,103 @@ groups:
           description: >-
             labdb 所有 lock 類型合計達 {{ $value }} 個，已持續超過 3 分鐘，
             整體 lock 壓力持續偏高，建議確認是否有長事務或連線池洩漏。
+
+  # ============================================================
+  #  Blackbox Exporter 告警群組
+  # ============================================================
+  - name: blackbox-alerts
+    interval: 30s
+    rules:
+
+      # ── HTTP 探測失敗（網站 / API 掛掉）──────────────────────────────────
+      - alert: BlackboxProbeFailed
+        expr: probe_success == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "探測失敗：{{ $labels.instance }}"
+          description: >-
+            Blackbox Exporter 對 {{ $labels.instance }} 的探測持續失敗超過 1 分鐘，
+            目標可能已下線或無法存取。
+
+      # ── HTTP 回應時間過慢 ─────────────────────────────────────────────────
+      - alert: BlackboxProbeSlowResponse
+        expr: probe_duration_seconds > 3
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "探測回應過慢：{{ $labels.instance }}（{{ $value | printf \"%.2f\" }}s）"
+          description: >-
+            {{ $labels.instance }} 回應時間超過 3 秒，已持續 2 分鐘，
+            可能存在網路延遲或服務效能問題。
+
+      # ── HTTP 狀態碼異常（非 2xx）─────────────────────────────────────────
+      - alert: BlackboxProbeHttpFailure
+        expr: probe_http_status_code <= 199 OR probe_http_status_code >= 400
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP 狀態碼異常：{{ $labels.instance }}（{{ $value }}）"
+          description: >-
+            {{ $labels.instance }} 回傳 HTTP {{ $value }}，
+            持續超過 1 分鐘，請確認服務狀態。
+
+      # ── TCP 連線失敗（Port 無法連線）─────────────────────────────────────
+      - alert: BlackboxTcpConnectionFailed
+        expr: probe_success{job="blackbox-tcp"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "TCP 連線失敗：{{ $labels.instance }}"
+          description: >-
+            無法建立 TCP 連線至 {{ $labels.instance }}，
+            持續超過 1 分鐘，請確認服務或防火牆規則。
+
+  # ============================================================
+  #  SSL Exporter 告警群組
+  # ============================================================
+  - name: ssl-alerts
+    interval: 1h
+    rules:
+
+      # ── 憑證即將到期（30 天內）───────────────────────────────────────────
+      - alert: SSLCertExpiringSoon
+        expr: >-
+          (ssl_verified_chain_expiry_seconds - time()) / 86400 < 30
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSL 憑證即將到期：{{ $labels.instance }}"
+          description: >-
+            {{ $labels.instance }} 的 SSL 憑證將在
+            {{ $value | printf \"%.0f\" }} 天後到期，請盡快更新憑證。
+
+      # ── 憑證即將到期（7 天內，升級為 critical）──────────────────────────
+      - alert: SSLCertExpiringCritical
+        expr: >-
+          (ssl_verified_chain_expiry_seconds - time()) / 86400 < 7
+        for: 1h
+        labels:
+          severity: critical
+        annotations:
+          summary: "緊急：SSL 憑證 {{ $labels.instance }} 僅剩 {{ $value | printf \"%.0f\" }} 天"
+          description: >-
+            {{ $labels.instance }} 的 SSL 憑證即將在 {{ $value | printf \"%.0f\" }} 天內到期，
+            憑證過期將導致所有 HTTPS 連線失敗，請立即更新。
+
+      # ── 憑證探測失敗（無法取得憑證資訊）────────────────────────────────
+      - alert: SSLProbeFailed
+        expr: ssl_probe_success == 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSL 探測失敗：{{ $labels.instance }}"
+          description: >-
+            無法從 {{ $labels.instance }} 取得 SSL 憑證資訊，
+            可能是連線問題或憑證配置錯誤。
