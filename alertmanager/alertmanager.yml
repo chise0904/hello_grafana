@@ -15,7 +15,7 @@ receivers:
 
     # ── Slack ──────────────────────────────────────────────────────────────
     slack_configs:
-      - api_url: 'https://REPLACE_ME.hooks.slack.com/services/REPLACE_ME'
+      - api_url: 'slack_api_url'  # 使用 global 定義的 URL
         channel: '#general'
         send_resolved: true
         icon_emoji: ':fire:'
