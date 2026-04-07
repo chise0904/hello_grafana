@@ -1,7 +1,7 @@
 global:
   resolve_timeout: 5m
   # Slack 全域設定（可選）
-  slack_api_url: 'https://REPLACE_ME.hooks.slack.com/services/REPLACE_ME'
+  slack_api_url: 'https://REPLACE_ME.webhook.office.com/webhookb2/REPLACE_ME'
 
 route:
   group_by: ['alertname', 'severity']
@@ -15,7 +15,7 @@ receivers:
 
     # ── Slack ──────────────────────────────────────────────────────────────
     slack_configs:
-      - api_url: 'slack_api_url'  # 使用 global 定義的 URL
+      - api_url: 'https://REPLACE_ME.webhook.office.com/webhookb2/REPLACE_ME' # 使用 global 定義的 URL
         channel: '#general'
         send_resolved: true
         icon_emoji: ':fire:'
