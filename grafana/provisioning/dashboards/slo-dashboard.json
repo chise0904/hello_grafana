@@ -1,0 +1,314 @@
+{
+  "title": "SLO Overview（Sloth）",
+  "uid": "sloth-slo-overview",
+  "timezone": "Asia/Taipei",
+  "refresh": "1m",
+  "time": { "from": "now-7d", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "PostgreSQL 可用性｜Error Budget 剩餘",
+      "type": "gauge",
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "targets": [
+        {
+          "expr": "slo:period_error_budget_remaining:ratio{sloth_slo=\"postgres-availability\"} * 100",
+          "legendFormat": "Error Budget %",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red",    "value": null },
+              { "color": "yellow", "value": 25 },
+              { "color": "green",  "value": 50 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      }
+    },
+    {
+      "id": 2,
+      "title": "HTTP 探測可用性｜Error Budget 剩餘",
+      "type": "gauge",
+      "gridPos": { "x": 8, "y": 0, "w": 8, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "targets": [
+        {
+          "expr": "slo:period_error_budget_remaining:ratio{sloth_slo=\"http-probe-availability\"} * 100",
+          "legendFormat": "Error Budget %",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red",    "value": null },
+              { "color": "yellow", "value": 25 },
+              { "color": "green",  "value": 50 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      }
+    },
+    {
+      "id": 3,
+      "title": "PostgreSQL TCP 可用性｜Error Budget 剩餘",
+      "type": "gauge",
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "targets": [
+        {
+          "expr": "slo:period_error_budget_remaining:ratio{sloth_slo=\"postgres-tcp-availability\"} * 100",
+          "legendFormat": "Error Budget %",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red",    "value": null },
+              { "color": "yellow", "value": 25 },
+              { "color": "green",  "value": 50 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      }
+    },
+    {
+      "id": 4,
+      "title": "PostgreSQL 可用性｜當前燃燒率",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 6, "w": 8, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "targets": [
+        {
+          "expr": "slo:current_burn_rate:ratio{sloth_slo=\"postgres-availability\"}",
+          "legendFormat": "Burn Rate",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red",    "value": 14.4 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "title": "HTTP 探測可用性｜當前燃燒率",
+      "type": "stat",
+      "gridPos": { "x": 8, "y": 6, "w": 8, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "targets": [
+        {
+          "expr": "slo:current_burn_rate:ratio{sloth_slo=\"http-probe-availability\"}",
+          "legendFormat": "Burn Rate",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red",    "value": 14.4 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "title": "PostgreSQL TCP 可用性｜當前燃燒率",
+      "type": "stat",
+      "gridPos": { "x": 16, "y": 6, "w": 8, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "targets": [
+        {
+          "expr": "slo:current_burn_rate:ratio{sloth_slo=\"postgres-tcp-availability\"}",
+          "legendFormat": "Burn Rate",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red",    "value": 14.4 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 7,
+      "title": "SLI 錯誤率（5m window）",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 10, "w": 24, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "targets": [
+        {
+          "expr": "slo:sli_error:ratio_rate5m{sloth_service=\"grafana-pg-lab\"}",
+          "legendFormat": "{{sloth_slo}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 8,
+      "title": "PostgreSQL 可用性｜Burn Rate 趨勢（多 window）",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 18, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "targets": [
+        {
+          "expr": "slo:sli_error:ratio_rate5m{sloth_slo=\"postgres-availability\"} / on() group_left() (1 - slo:objective:ratio{sloth_slo=\"postgres-availability\"})",
+          "legendFormat": "5m burn rate",
+          "refId": "A"
+        },
+        {
+          "expr": "slo:sli_error:ratio_rate1h{sloth_slo=\"postgres-availability\"} / on() group_left() (1 - slo:objective:ratio{sloth_slo=\"postgres-availability\"})",
+          "legendFormat": "1h burn rate",
+          "refId": "B"
+        },
+        {
+          "expr": "slo:sli_error:ratio_rate6h{sloth_slo=\"postgres-availability\"} / on() group_left() (1 - slo:objective:ratio{sloth_slo=\"postgres-availability\"})",
+          "legendFormat": "6h burn rate",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 5
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 9,
+      "title": "HTTP 探測可用性｜Burn Rate 趨勢（多 window）",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 18, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "targets": [
+        {
+          "expr": "slo:sli_error:ratio_rate5m{sloth_slo=\"http-probe-availability\"} / on() group_left() (1 - slo:objective:ratio{sloth_slo=\"http-probe-availability\"})",
+          "legendFormat": "5m burn rate",
+          "refId": "A"
+        },
+        {
+          "expr": "slo:sli_error:ratio_rate1h{sloth_slo=\"http-probe-availability\"} / on() group_left() (1 - slo:objective:ratio{sloth_slo=\"http-probe-availability\"})",
+          "legendFormat": "1h burn rate",
+          "refId": "B"
+        },
+        {
+          "expr": "slo:sli_error:ratio_rate6h{sloth_slo=\"http-probe-availability\"} / on() group_left() (1 - slo:objective:ratio{sloth_slo=\"http-probe-availability\"})",
+          "legendFormat": "6h burn rate",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 5
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      }
+    }
+  ]
+}

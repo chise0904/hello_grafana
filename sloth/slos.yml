@@ -1,0 +1,99 @@
+version: "prometheus/v1"
+service: "grafana-pg-lab"
+labels:
+  team: "platform"
+  env: "lab"
+
+slos:
+
+  # ──────────────────────────────────────────────────────────────
+  # SLO 1：PostgreSQL 可用性（目標 99.9%）
+  # 依據 pg_up 計算 error ratio，pg_up=0 表示 exporter 無法連線
+  # ──────────────────────────────────────────────────────────────
+  - name: "postgres-availability"
+    objective: 99.9
+    description: >
+      PostgreSQL 資料庫可用性 SLO。
+      以 pg_up 作為 availability 指標，0 代表不可用。
+      目標：30 天滾動窗口內可用性 ≥ 99.9%（允許停機 ~43 分鐘）。
+    sli:
+      raw:
+        error_ratio_query: (1 - avg_over_time(pg_up[{{.window}}]))
+    alerting:
+      name: PostgreSQLAvailabilitySLO
+      labels:
+        category: availability
+        service: postgres
+      annotations:
+        summary: "PostgreSQL 可用性 SLO 燃燒率過高"
+        description: >-
+          PostgreSQL SLO 錯誤燃燒率超過閾值，
+          剩餘 error budget 正在快速消耗，請立即確認資料庫狀態。
+      page_alert:
+        labels:
+          severity: critical
+      ticket_alert:
+        labels:
+          severity: warning
+
+  # ──────────────────────────────────────────────────────────────
+  # SLO 2：HTTP 端點可用性（目標 99.5%）
+  # 依據 blackbox probe_success 計算探測成功率
+  # ──────────────────────────────────────────────────────────────
+  - name: "http-probe-availability"
+    objective: 99.5
+    description: >
+      外部 HTTP 端點探測可用性 SLO。
+      使用 Blackbox Exporter 的 probe_success 指標，
+      目標：30 天滾動窗口內探測成功率 ≥ 99.5%（允許停機 ~3.6 小時）。
+    sli:
+      raw:
+        error_ratio_query: >-
+          (1 - avg_over_time(probe_success{job="blackbox-http"}[{{.window}}]))
+    alerting:
+      name: HttpProbeAvailabilitySLO
+      labels:
+        category: availability
+        service: http-probe
+      annotations:
+        summary: "HTTP 探測可用性 SLO 燃燒率過高"
+        description: >-
+          Blackbox HTTP 探測的 SLO 錯誤燃燒率超過閾值，
+          目標 URL 可能出現持續性故障，請確認 {{ $labels.instance }}。
+      page_alert:
+        labels:
+          severity: critical
+      ticket_alert:
+        labels:
+          severity: warning
+
+  # ──────────────────────────────────────────────────────────────
+  # SLO 3：PostgreSQL TCP 連線可用性（目標 99.9%）
+  # 依據 blackbox TCP probe 確認 PostgreSQL port 5432 連線狀況
+  # ──────────────────────────────────────────────────────────────
+  - name: "postgres-tcp-availability"
+    objective: 99.9
+    description: >
+      PostgreSQL TCP port 5432 連線可用性 SLO。
+      使用 Blackbox TCP probe 確認 port 是否可達，
+      目標：30 天滾動窗口內 TCP 連線成功率 ≥ 99.9%。
+    sli:
+      raw:
+        error_ratio_query: >-
+          (1 - avg_over_time(probe_success{job="blackbox-tcp"}[{{.window}}]))
+    alerting:
+      name: PostgresTcpAvailabilitySLO
+      labels:
+        category: availability
+        service: postgres-tcp
+      annotations:
+        summary: "PostgreSQL TCP 連線 SLO 燃燒率過高"
+        description: >-
+          PostgreSQL TCP 探測 SLO 錯誤燃燒率超過閾值，
+          資料庫 port 5432 可能無法正常連線，請確認網路或服務狀態。
+      page_alert:
+        labels:
+          severity: critical
+      ticket_alert:
+        labels:
+          severity: warning

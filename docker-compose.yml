@@ -56,6 +56,23 @@ services:
         condition: service_healthy
 
   # ──────────────────────────────────────────
+  # Sloth（SLO → Prometheus rules 產生器）
+  # 啟動時 one-shot 產生 slo-rules.yml，結束後 Prometheus 再載入
+  # ──────────────────────────────────────────
+  sloth:
+    image: slok/sloth:latest
+    container_name: lab-sloth
+    volumes:
+      - ./sloth:/sloth
+      - ./prometheus:/prometheus-config
+    command: >
+      generate
+      --input /sloth/slos.yml
+      --out /prometheus-config/rules/slo-rules.yml
+    networks:
+      - monitoring
+
+  # ──────────────────────────────────────────
   # 3. Prometheus（抓 exporter metrics）
   # ──────────────────────────────────────────
   prometheus:
@@ -64,6 +81,7 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml
+      - ./prometheus/rules:/etc/prometheus/rules
       - prometheus_data:/prometheus
     ports:
       - "9090:9090"
@@ -75,8 +93,12 @@ services:
       - "--storage.tsdb.retention.time=7d"
       - "--web.enable-lifecycle"
     depends_on:
-      - postgres-exporter
-      - alertmanager
+      postgres-exporter:
+        condition: service_started
+      alertmanager:
+        condition: service_started
+      sloth:
+        condition: service_completed_successfully
 
   # ──────────────────────────────────────────
   # 6. Alertmanager（Alert 路由 → Slack / Teams）

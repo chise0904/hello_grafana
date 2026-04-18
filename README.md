@@ -7,8 +7,12 @@
     │
     ▼
 PostgreSQL ──► postgres_exporter ──► Prometheus ──► Grafana
-    │                                                  ▲
-    └──────────────── 直接 SQL Query ──────────────────┘
+    │               ▲                    ▲              ▲
+    └── 直接 SQL ───┘                    │              │
+                                         │              │
+Blackbox Exporter ───────────────────────┘              │
+SSL Exporter ────────────────────────────┘              │
+Sloth（SLO rules 產生器，one-shot）─────► slo-rules.yml─┘
 ```
 
 ## 快速啟動
@@ -26,7 +30,10 @@ docker compose up -d
 |------|-----|---------|
 | Grafana | http://localhost:3000 | admin / admin123 |
 | Prometheus | http://localhost:9090 | - |
+| Alertmanager | http://localhost:9093 | - |
 | postgres_exporter metrics | http://localhost:9187/metrics | - |
+| Blackbox Exporter | http://localhost:9115 | - |
+| SSL Exporter | http://localhost:9219 | - |
 
 ## 測試場景說明
 
@@ -62,6 +69,44 @@ docker compose up -d
 | database | labdb |
 | user | grafana_ro |
 | password | grafana_ro_pass |
+
+## SLO 監控（Sloth）
+
+[Sloth](https://sloth.dev) 在啟動時以 one-shot 模式讀取 `sloth/slos.yml`，產生符合 Google SRE 標準的 multi-burn-rate alerting rules，輸出至 `prometheus/slo-rules.yml` 後由 Prometheus 載入。
+
+### 已定義的 SLO
+
+| SLO 名稱 | 目標 | 指標來源 | 說明 |
+|---------|------|---------|------|
+| `postgres-availability` | 99.9% | `pg_up` | PostgreSQL exporter 可用性 |
+| `http-probe-availability` | 99.5% | `probe_success{job="blackbox-http"}` | 外部 HTTP 端點可用性 |
+| `postgres-tcp-availability` | 99.9% | `probe_success{job="blackbox-tcp"}` | PostgreSQL port 5432 TCP 連線可用性 |
+
+### 查看 SLO 狀態
+
+**Grafana：**
+- Dashboards → Lab → **SLO Overview（Sloth）**
+- 可看到三個 SLO 的 Error Budget Gauge、Burn Rate Stat 和多 window 趨勢圖
+
+**Prometheus：**
+1. 前往 http://localhost:9090/rules → 搜尋 `sloth-slo`，可看到所有 recording rules 和 burn rate alerts
+2. 查詢 error budget 剩餘：
+   ```
+   slo:error_budget:ratio{sloth_service="grafana-pg-lab"}
+   ```
+3. 查詢當前燃燒率：
+   ```
+   slo:current_burn_rate:ratio{sloth_service="grafana-pg-lab"}
+   ```
+
+### 修改 SLO
+
+編輯 `sloth/slos.yml` 後，重新執行 Sloth 產生新的 rules：
+
+```bash
+docker compose run --rm sloth
+docker compose kill -s SIGHUP prometheus   # 觸發 Prometheus 熱載入
+```
 
 ## 停止環境
 

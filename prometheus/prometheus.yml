@@ -12,6 +12,7 @@ alerting:
 # ── Alert Rules 載入 ───────────────────────────────────────────────────────
 rule_files:
   - "/etc/prometheus/alert-rules.yml"
+  - "/etc/prometheus/rules/*.yml"
 
 scrape_configs:
 

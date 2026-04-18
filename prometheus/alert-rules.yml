@@ -215,7 +215,7 @@ groups:
           summary: "SSL 憑證即將到期：{{ $labels.instance }}"
           description: >-
             {{ $labels.instance }} 的 SSL 憑證將在
-            {{ $value | printf \"%.0f\" }} 天後到期，請盡快更新憑證。
+            {{ $value | printf "%.0f" }} 天後到期，請盡快更新憑證。
 
       # ── 憑證即將到期（7 天內，升級為 critical）──────────────────────────
       - alert: SSLCertExpiringCritical
@@ -227,7 +227,7 @@ groups:
         annotations:
           summary: "緊急：SSL 憑證 {{ $labels.instance }} 僅剩 {{ $value | printf \"%.0f\" }} 天"
           description: >-
-            {{ $labels.instance }} 的 SSL 憑證即將在 {{ $value | printf \"%.0f\" }} 天內到期，
+            {{ $labels.instance }} 的 SSL 憑證即將在 {{ $value | printf "%.0f" }} 天內到期，
             憑證過期將導致所有 HTTPS 連線失敗，請立即更新。
 
       # ── 憑證探測失敗（無法取得憑證資訊）────────────────────────────────
