@@ -1,0 +1,327 @@
+{
+  "id": null,
+  "uid": "api-otel-metrics",
+  "title": "API Services - OTel Metrics",
+  "tags": ["otel", "api", "python"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "HTTP Metrics — Server A",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "title": "Request Rate — Server A",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+          "expr": "sum(rate(http_requests_total{job=\"server-a\"}[1m])) by (route, status_code)",
+          "legendFormat": "{{route}} [{{status_code}}]"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 1, "fillOpacity": 10 }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      }
+    },
+    {
+      "id": 3,
+      "title": "P99 Latency — Server A",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"server-a\"}[5m])) by (le, route))",
+          "legendFormat": "p99 {{route}}"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+          "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{job=\"server-a\"}[5m])) by (le, route))",
+          "legendFormat": "p50 {{route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 1, "fillOpacity": 10 }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      }
+    },
+    {
+      "id": 10,
+      "title": "HTTP Metrics — Server B",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "panels": []
+    },
+    {
+      "id": 4,
+      "title": "Request Rate — Server B",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+          "expr": "sum(rate(http_requests_total{job=\"server-b\"}[1m])) by (route, status_code)",
+          "legendFormat": "{{route}} [{{status_code}}]"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 1, "fillOpacity": 10 }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      }
+    },
+    {
+      "id": 5,
+      "title": "P99 Latency — Server B",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"server-b\"}[5m])) by (le, route))",
+          "legendFormat": "p99 {{route}}"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+          "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{job=\"server-b\"}[5m])) by (le, route))",
+          "legendFormat": "p50 {{route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 1, "fillOpacity": 10 }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      }
+    },
+    {
+      "id": 11,
+      "title": "Upstream Calls (A → B)",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "panels": []
+    },
+    {
+      "id": 6,
+      "title": "Upstream Call Rate (A → B)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+          "expr": "sum(rate(upstream_calls_total{job=\"server-a\"}[1m])) by (endpoint, status)",
+          "legendFormat": "{{endpoint}} [{{status}}]"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 1, "fillOpacity": 10 }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Upstream Call P99 Latency (A → B)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+          "expr": "histogram_quantile(0.99, sum(rate(upstream_call_duration_seconds_bucket{job=\"server-a\"}[5m])) by (le, endpoint))",
+          "legendFormat": "p99 {{endpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 1, "fillOpacity": 10 }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      }
+    },
+    {
+      "id": 12,
+      "title": "Database Queries (B → PostgreSQL)",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
+      "panels": []
+    },
+    {
+      "id": 8,
+      "title": "DB Query Rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+          "expr": "sum(rate(db_queries_total{job=\"server-b\"}[1m])) by (operation, table, status)",
+          "legendFormat": "{{operation}} {{table}} [{{status}}]"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 1, "fillOpacity": 10 }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      }
+    },
+    {
+      "id": 9,
+      "title": "DB Query P99 Latency",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+          "expr": "histogram_quantile(0.99, sum(rate(db_query_duration_seconds_bucket{job=\"server-b\"}[5m])) by (le, operation, table))",
+          "legendFormat": "p99 {{operation}} {{table}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 1, "fillOpacity": 10 }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      }
+    },
+    {
+      "id": 13,
+      "title": "Error Rates",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 36 },
+      "panels": []
+    },
+    {
+      "id": 14,
+      "title": "Error Rate — Server A",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 37 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+          "expr": "sum(rate(http_requests_total{job=\"server-a\",status_code=~\"[45]..\"}[1m])) / sum(rate(http_requests_total{job=\"server-a\"}[1m]))",
+          "legendFormat": "error rate"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": { "lineWidth": 1, "fillOpacity": 10 },
+          "color": { "fixedColor": "red", "mode": "fixed" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      }
+    },
+    {
+      "id": 15,
+      "title": "Error Rate — Server B",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 37 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-lab" },
+          "expr": "sum(rate(http_requests_total{job=\"server-b\",status_code=~\"[45]..\"}[1m])) / sum(rate(http_requests_total{job=\"server-b\"}[1m]))",
+          "legendFormat": "error rate"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": { "lineWidth": 1, "fillOpacity": 10 },
+          "color": { "fixedColor": "red", "mode": "fixed" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      }
+    }
+  ]
+}

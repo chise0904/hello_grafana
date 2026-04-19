@@ -62,6 +62,18 @@ scrape_configs:
       - target_label: __address__
         replacement: blackbox-exporter:9115
 
+  # ── API Server A（OTel Prometheus exporter）────────────────────────────
+  - job_name: "server-a"
+    static_configs:
+      - targets: ["server-a:8001"]
+    metrics_path: /metrics
+
+  # ── API Server B（OTel Prometheus exporter）────────────────────────────
+  - job_name: "server-b"
+    static_configs:
+      - targets: ["server-b:8002"]
+    metrics_path: /metrics
+
   # ── SSL Exporter：憑證到期監控 ─────────────────────────────────────────
   - job_name: "ssl"
     metrics_path: /probe

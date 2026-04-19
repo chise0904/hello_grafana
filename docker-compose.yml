@@ -171,6 +171,64 @@ services:
       - postgres
 
   # ──────────────────────────────────────────
+  # Grafana Tempo（接收 OTLP traces）
+  # ──────────────────────────────────────────
+  tempo:
+    image: grafana/tempo:latest
+    container_name: lab-tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./tempo/tempo.yml:/etc/tempo.yaml
+    ports:
+      - "3200:3200"   # Tempo HTTP API
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    networks:
+      - monitoring
+
+  # ──────────────────────────────────────────
+  # API Server A（對外 Gateway，呼叫 Server B）
+  # ──────────────────────────────────────────
+  server-a:
+    build:
+      context: ./services/server-a
+    container_name: lab-server-a
+    ports:
+      - "8001:8001"
+    environment:
+      SERVER_B_URL: http://server-b:8002
+    depends_on:
+      - server-b
+      - tempo
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────
+  # API Server B（資料層，存取 PostgreSQL）
+  # ──────────────────────────────────────────
+  server-b:
+    build:
+      context: ./services/server-b
+    container_name: lab-server-b
+    ports:
+      - "8002:8002"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: labdb
+      DB_USER: labuser
+      DB_PASS: labpass123
+    depends_on:
+      postgres:
+        condition: service_healthy
+      tempo:
+        condition: service_started
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────
   # 5. 假資料產生器（模擬真實業務流量）
   # ──────────────────────────────────────────
   fake-data-generator:
